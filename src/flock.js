@@ -17,7 +17,7 @@ export const FLOCK_PARAMS = {
   radius: 16, // horizontal soft boundary
   minY: 1.2, // soft floor / ceiling
   maxY: 15,
-  perception: 2.0, // neighbour radius, also the grid cell size
+  perception: 1.6, // neighbour radius, also the grid cell size
   separation: 1.0,
   minSpeed: 3.5,
   cruiseSpeed: 6,
@@ -28,13 +28,16 @@ export const FLOCK_PARAMS = {
   separationWeight: 18, // m/s² per fully-overlapping neighbour
   wander: 0.8, // pull toward the slowly drifting flock target...
   flockRadius: 4, // ...felt only by birds farther than this from it
-  maxNeighbors: 14,
-  maxCandidates: 120, // distance checks per bird before the search stops widening
+  // Safety valve for pathological crowding (e.g. thousands of birds called into
+  // one spot): past this many distance checks the search stops widening.
+  maxCandidates: 600,
 };
 
 // The 27 neighbouring cells ordered outward in symmetric rings (self, faces,
-// edges, corners). The search only stops between rings, so truncating it in a
-// dense clump never biases a bird toward one side.
+// edges, corners). Normally all 27 are searched, which covers the whole
+// perception sphere so every neighbour in range counts (capping the count
+// instead would favour the bird's own cell and pull flocks onto the grid).
+// If maxCandidates trips, the search stops only between rings.
 const CELL_OFFSETS = [];
 for (let ring = 0; ring <= 3; ring++) {
   for (let z = -1; z <= 1; z++) for (let y = -1; y <= 1; y++) for (let x = -1; x <= 1; x++) {
@@ -207,12 +210,10 @@ export class Flock {
             const w = (P.separation - d) / (P.separation * d);
             sx -= dx * w; sy -= dy * w; sz -= dz * w;
           }
-          if (cnt < P.maxNeighbors) {
-            avx += vel[j3]; avy += vel[j3 + 1]; avz += vel[j3 + 2];
-            cx += dx; cy += dy; cz += dz;
-            if (panic[j] > neighbourPanic) neighbourPanic = panic[j];
-            cnt++;
-          }
+          avx += vel[j3]; avy += vel[j3 + 1]; avz += vel[j3 + 2];
+          cx += dx; cy += dy; cz += dz;
+          if (panic[j] > neighbourPanic) neighbourPanic = panic[j];
+          cnt++;
         }
       }
 

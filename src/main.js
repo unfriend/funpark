@@ -81,7 +81,8 @@ async function setView(next) {
     controls.enabled = false;
     camera.position.copy(INSIDE_POS);
     look.lookToward(new THREE.Vector3(0, 0.25, -1).normalize());
-    await look.enable();
+    const motion = await look.enable();
+    if (!motion) ui.flash('Motion access was refused, so drag to look around.');
   } else {
     look.disable();
     camera.position.copy(OVERVIEW_POS);
@@ -96,7 +97,7 @@ async function setView(next) {
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 const bursts = []; // world-space rays that scatter the flock for a moment
-const pointer = { down: null, active: 0, beam: false };
+const pointer = { down: null, ids: new Set(), beam: false }; // ids: pointers pressed on the canvas
 
 function setNdc(e) {
   const r = canvas.getBoundingClientRect();
@@ -111,20 +112,22 @@ function addBurst(ray) {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
-  pointer.active++;
+  pointer.ids.add(e.pointerId);
   // A tap is a single short touch/click that barely moves; a second finger cancels it.
-  pointer.down = pointer.active === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), button: e.button } : null;
+  pointer.down = pointer.ids.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), button: e.button } : null;
   if (e.button === 2) {
     pointer.beam = true;
     setNdc(e);
   }
 });
 window.addEventListener('pointermove', (e) => {
-  if (pointer.beam) setNdc(e);
+  if (!pointer.beam) return;
+  if (e.buttons & 2) setNdc(e);
+  else pointer.beam = false; // released somewhere we didn't hear about
 });
 const endPointer = (e) => {
-  pointer.active = Math.max(0, pointer.active - 1);
-  if (e.button === 2) pointer.beam = false;
+  if (!pointer.ids.delete(e.pointerId)) return; // didn't start on the canvas
+  if (e.button === 2 || e.type === 'pointercancel') pointer.beam = false;
   const d = pointer.down;
   pointer.down = null;
   if (e.type === 'pointerup' && d && d.button === 0 && performance.now() - d.t < 300 &&
@@ -135,10 +138,15 @@ const endPointer = (e) => {
 };
 window.addEventListener('pointerup', endPointer);
 window.addEventListener('pointercancel', endPointer);
+window.addEventListener('blur', () => {
+  pointer.ids.clear();
+  pointer.down = null;
+  pointer.beam = false;
+});
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
 window.addEventListener('keydown', (e) => {
-  if (e.target instanceof HTMLInputElement) return;
+  if (e.target instanceof HTMLInputElement || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key === 'h' || e.key === 'H') setHawk(!settings.hawk);
   if (e.key === ' ') {
     e.preventDefault();
@@ -171,9 +179,12 @@ const xrInput = new XRInput(renderer, scene, {
 let xrMode = null;
 let referenceSpace = 'local-floor';
 let needsPlacement = false;
+let xrStarting = false;
 const savedCamera = { position: new THREE.Vector3(), quaternion: new THREE.Quaternion(), fov: camera.fov };
 
 async function enterXR(mode) {
+  if (xrStarting || renderer.xr.isPresenting) return; // double-clicked, or already in a session
+  xrStarting = true;
   savedCamera.position.copy(camera.position);
   savedCamera.quaternion.copy(camera.quaternion);
   savedCamera.fov = camera.fov;
@@ -183,6 +194,8 @@ async function enterXR(mode) {
     console.error(err);
     ui.flash(`Couldn't start ${mode === 'immersive-ar' ? 'AR' : 'VR'}: ${err.message || err}`);
     return;
+  } finally {
+    xrStarting = false;
   }
   xrMode = mode;
   needsPlacement = true;

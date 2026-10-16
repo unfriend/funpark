@@ -16,7 +16,8 @@ A flock of birds (a starling murmuration at dusk) that runs in the browser on de
 | --- | --- | --- | --- | --- |
 | Desktop | drag to orbit, scroll to zoom | click, or hold the right mouse button and sweep | — | `H` key / Settings |
 | Phone | drag to orbit, pinch to zoom; **Inside the flock** uses the gyroscope | tap | — | Settings |
-| Quest VR / AR | your head | trigger (or pinch with hand tracking) | hold grip: the birds swirl around your hand | A / X button |
+| Quest VR / AR, controllers | your head | trigger | hold grip: the birds swirl around your hand | A / X button |
+| Quest VR / AR, hand tracking | your head | right-hand pinch | left-hand pinch | set it before entering |
 | Phone AR | move the phone | tap the screen | — | Settings |
 
 **Inside the flock** puts the camera in the middle of the flock at standing height, like VR without a headset. On phones it follows the gyroscope, and dragging adjusts the heading. iOS asks for motion permission the first time.

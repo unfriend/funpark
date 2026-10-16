@@ -23,7 +23,8 @@
     <section class="card">
       <h1>Murmuration</h1>
       <p id="hint"></p>
-      <p id="xr-help" hidden>In VR/AR: trigger or pinch to scatter · grip to call the flock · A/X for the hawk</p>
+      <p id="xr-help" hidden>In VR/AR: trigger to scatter · grip to call the flock · A/X for the hawk.
+        With hands: right pinch scatters, left pinch calls.</p>
       <p id="xr-note"></p>
       <details>
         <summary>Settings</summary>
@@ -54,6 +55,17 @@
   </div>
 
   <noscript>This needs JavaScript and WebGL.</noscript>
-  <script type="module" src="src/main.js"></script>
+  <script>
+    // Explain a blank page instead of leaving one (old browsers, blocked CDN, no WebGL).
+    function showStartupError(message) {
+      if (window.flock) return;
+      document.getElementById('hint').textContent = "Couldn't start: " + message;
+    }
+    if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) {
+      showStartupError('this browser is too old (needs import maps: Safari 16.4+, Chrome 89+, Firefox 108+).');
+    }
+    window.addEventListener('error', (e) => showStartupError(e.message));
+  </script>
+  <script type="module" src="src/main.js" onerror="showStartupError('could not load the app (offline, or the three.js CDN is blocked).')"></script>
 </body>
 </html>

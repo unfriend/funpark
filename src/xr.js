@@ -21,19 +21,23 @@ export async function startSession(renderer, mode, overlayRoot) {
     ? { optionalFeatures: ['local-floor', 'hand-tracking', 'dom-overlay'], domOverlay: { root: overlayRoot } }
     : { optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'layers'] };
   const session = await navigator.xr.requestSession(mode, init);
-
-  let space = 'local';
-  if (session.enabledFeatures?.includes('local-floor')) {
-    space = 'local-floor';
-  } else {
-    try {
-      await session.requestReferenceSpace('local-floor');
+  try {
+    let space = 'local';
+    if (session.enabledFeatures?.includes('local-floor')) {
       space = 'local-floor';
-    } catch { /* stay on 'local' */ }
+    } else {
+      try {
+        await session.requestReferenceSpace('local-floor');
+        space = 'local-floor';
+      } catch { /* stay on 'local' */ }
+    }
+    renderer.xr.setReferenceSpaceType(space);
+    await renderer.xr.setSession(session);
+    return space;
+  } catch (err) {
+    session.end().catch(() => {}); // don't leave a half-started session running
+    throw err;
   }
-  renderer.xr.setReferenceSpaceType(space);
-  await renderer.xr.setSession(session);
-  return space;
 }
 
 const RAY_IDLE = 0x9fb4ff;
@@ -41,9 +45,11 @@ const RAY_ACTIVE = 0xffe28a;
 
 /**
  * Tracks both XR input sources (controllers, hands, or screen taps in phone AR):
- * - trigger / pinch / tap  -> "scatter" along the pointing ray (+ a burst on press)
- * - grip                   -> "call" the flock to a point in front of the hand
- * - A / X button           -> onToggle()
+ * - trigger / right-hand pinch / tap -> "scatter" along the pointing ray (+ a burst on press)
+ * - grip / left-hand pinch           -> "call" the flock to a point in front of the hand
+ * - A / X button                     -> onToggle()
+ * Hands have no grip button (and not every browser fires squeeze for them),
+ * so with hand tracking the left pinch does the calling.
  */
 export class XRInput {
   constructor(renderer, scene, { onBurst, onToggle } = {}) {
@@ -75,11 +81,19 @@ export class XRInput {
         state.selecting = state.squeezing = false;
         ray.visible = false;
       });
+      const pinchCalls = () => !!state.inputSource?.hand && state.inputSource.handedness === 'left';
       controller.addEventListener('selectstart', () => {
+        if (pinchCalls()) {
+          state.squeezing = true;
+          return;
+        }
         state.selecting = true;
         this.onBurst?.(this.rayOf(state));
       });
-      controller.addEventListener('selectend', () => { state.selecting = false; });
+      controller.addEventListener('selectend', () => {
+        if (pinchCalls()) state.squeezing = false;
+        state.selecting = false;
+      });
       controller.addEventListener('squeezestart', () => { state.squeezing = true; });
       controller.addEventListener('squeezeend', () => { state.squeezing = false; });
 

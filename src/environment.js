@@ -83,7 +83,7 @@ function createSky() {
         vec3 horizon = mix(uMid * 1.15, uHorizon, 0.45 + 0.55 * s * s);
         vec3 col = mix(horizon, uMid, smoothstep(0.0, 0.28, d.y));
         col = mix(col, uTop, smoothstep(0.2, 0.85, d.y));
-        col = mix(col, uBelow, smoothstep(0.0, -0.12, d.y));
+        col = mix(uBelow, col, smoothstep(-0.12, 0.0, d.y)); // GLSL smoothstep needs edge0 < edge1
         col += uSun * (pow(s, 6.0) * 0.35 + pow(s, 80.0) * 0.8 + smoothstep(0.9994, 0.9997, s) * 3.0);
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>

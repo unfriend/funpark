@@ -22,13 +22,14 @@ export class LookControls {
     this.drag = null;
     this.gyroQuat = new THREE.Quaternion();
     this.tmpQuat = new THREE.Quaternion();
+    this.tmpVec = new THREE.Vector3();
     this.euler = new THREE.Euler();
 
     this.onOrientation = (e) => {
       if (e.alpha !== null) this.orientation = e;
     };
     this.onPointerDown = (e) => {
-      if (!e.isPrimary) return;
+      if (!e.isPrimary || e.button !== 0) return; // right button is the scatter beam
       this.drag = { x: e.clientX, y: e.clientY };
     };
     this.onPointerMove = (e) => {
@@ -39,22 +40,28 @@ export class LookControls {
       this.yaw += dx * k;
       if (!this.orientation) this.pitch = THREE.MathUtils.clamp(this.pitch + dy * k, -1.4, 1.4);
     };
-    this.onPointerUp = () => { this.drag = null; };
+    this.onPointerUp = (e) => {
+      if (e.isPrimary) this.drag = null; // lifting a second finger doesn't end the drag
+    };
   }
 
   // Must run inside a user gesture: iOS only grants motion access from one.
+  // Resolves to false if the user refused motion access (drag still works).
   async enable() {
     this.enabled = true;
     this.headingOffset = null;
+    let permission = 'granted';
     const DOE = window.DeviceOrientationEvent;
     if (DOE && typeof DOE.requestPermission === 'function') {
-      try { await DOE.requestPermission(); } catch { /* fall back to drag */ }
+      try { permission = await DOE.requestPermission(); } catch { permission = 'denied'; }
+      if (!this.enabled) return true; // view was switched away while the prompt was up
     }
     window.addEventListener('deviceorientation', this.onOrientation);
     this.element.addEventListener('pointerdown', this.onPointerDown);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('pointercancel', this.onPointerUp);
+    return permission === 'granted';
   }
 
   disable() {
@@ -86,8 +93,15 @@ export class LookControls {
         .multiply(this.tmpQuat.setFromAxisAngle(Z_AXIS, -screenAngle));
       if (this.headingOffset === null) {
         // Align the compass heading the phone happens to face with the current view.
-        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(this.gyroQuat);
-        this.headingOffset = -Math.atan2(-fwd.x, -fwd.z);
+        // Held flat (camera at the floor or sky) the view direction has no useful
+        // horizontal part, so take the heading from the phone's top edge instead.
+        const dir = this.tmpVec.set(0, 0, -1).applyQuaternion(this.gyroQuat);
+        if (dir.x * dir.x + dir.z * dir.z < 0.1) {
+          const lookingDown = dir.y < 0;
+          dir.set(0, 1, 0).applyQuaternion(this.gyroQuat);
+          if (!lookingDown) dir.negate();
+        }
+        this.headingOffset = -Math.atan2(-dir.x, -dir.z);
       }
       q.setFromAxisAngle(Y_AXIS, this.headingOffset + this.yaw).multiply(this.gyroQuat);
     } else {
