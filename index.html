@@ -57,14 +57,16 @@
   <noscript>This needs JavaScript and WebGL.</noscript>
   <script>
     // Explain a blank page instead of leaving one (old browsers, blocked CDN, no WebGL).
+    // The first, most specific message wins; later errors are usually its fallout.
     function showStartupError(message) {
-      if (window.flock) return;
+      if (window.flock || document.body.classList.contains('failed')) return;
+      document.body.classList.add('failed');
       document.getElementById('hint').textContent = "Couldn't start: " + message;
     }
     if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) {
       showStartupError('this browser is too old (needs import maps: Safari 16.4+, Chrome 89+, Firefox 108+).');
     }
-    window.addEventListener('error', (e) => showStartupError(e.message));
+    window.addEventListener('error', (e) => showStartupError((e.error && e.error.message) || e.message));
   </script>
   <script type="module" src="src/main.js" onerror="showStartupError('could not load the app (offline, or the three.js CDN is blocked).')"></script>
 </body>

@@ -112,6 +112,7 @@ button[hidden] { display: none; }
   left: 50%;
   bottom: calc(max(16px, env(safe-area-inset-bottom)) + 64px);
   transform: translateX(-50%);
+  width: max-content; /* otherwise left: 50% shrinks it to half the screen */
   max-width: calc(100% - 32px);
   padding: 10px 16px;
   border-radius: 10px;
@@ -119,6 +120,10 @@ button[hidden] { display: none; }
   font-size: 14px;
 }
 #toast[hidden] { display: none; }
+
+/* If the app failed to start, only the explanation is left. */
+body.failed .actions,
+body.failed details { display: none; }
 
 /* Hidden page UI while a headset/AR session is running. */
 body.in-xr #ui { display: none; }
