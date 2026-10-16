@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f2d5c">
-  <meta name="description" content="A murmuration of birds at dusk, in your browser, on your phone, or around you in VR/AR.">
-  <title>Murmuration</title>
+  <meta name="description" content="A murmuration of birds at dusk and a butterfly meadow, in your browser, on your phone, or around you in VR/AR.">
+  <title>Wings</title>
   <link rel="stylesheet" href="style.css">
   <script type="importmap">
     {
@@ -21,22 +21,14 @@
 
   <div id="ui">
     <section class="card">
-      <h1>Murmuration</h1>
+      <div id="scene-tabs" class="tabs" role="tablist" aria-label="Scene"></div>
+      <h1 id="scene-title">Wings</h1>
       <p id="hint"></p>
-      <p id="xr-help" hidden>In VR/AR: trigger to scatter · grip to call the flock · A/X for the hawk.
-        With hands: right pinch scatters, left pinch calls.</p>
+      <p id="xr-help" hidden></p>
       <p id="xr-note"></p>
       <details>
         <summary>Settings</summary>
-        <label class="row">
-          <span>Birds</span>
-          <input id="count" type="range" min="100" step="100">
-          <output id="count-out"></output>
-        </label>
-        <label class="row">
-          <input id="hawk" type="checkbox">
-          <span>Hawk (it hunts, the flock flees)</span>
-        </label>
+        <div id="settings"></div>
       </details>
     </section>
 
@@ -59,7 +51,7 @@
     // Explain a blank page instead of leaving one (old browsers, blocked CDN, no WebGL).
     // The first, most specific message wins; later errors are usually its fallout.
     function showStartupError(message) {
-      if (window.flock || document.body.classList.contains('failed')) return;
+      if (window.app || document.body.classList.contains('failed')) return;
       document.body.classList.add('failed');
       document.getElementById('hint').textContent = "Couldn't start: " + message;
     }

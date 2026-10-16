@@ -53,6 +53,27 @@ html, body {
   -webkit-backdrop-filter: blur(10px);
 }
 
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin: 0 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  width: fit-content;
+}
+.tabs button {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+
 h1 {
   margin: 0 0 4px;
   font-size: 20px;
@@ -123,6 +144,7 @@ button[hidden] { display: none; }
 
 /* If the app failed to start, only the explanation is left. */
 body.failed .actions,
+body.failed .tabs,
 body.failed details { display: none; }
 
 /* Hidden page UI while a headset/AR session is running. */

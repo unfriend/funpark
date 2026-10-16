@@ -1,8 +1,14 @@
-# Murmuration
+# Wings
 
-A flock of birds (a starling murmuration at dusk) that runs in the browser on desktop and phones, and in VR or passthrough AR on Meta Quest headsets. Built with [three.js](https://threejs.org) and WebXR. There's no build step: it's static files plus three.js loaded from a CDN.
+Birds and butterflies that run in the browser on desktop and phones, and in VR or passthrough AR on Meta Quest headsets. Built with [three.js](https://threejs.org) and WebXR. There's no build step: it's static files plus three.js loaded from a CDN.
 
-## What it does
+Pick a scene from the menu at the top of the page. In VR, the B / Y button switches scenes.
+
+## Scenes
+
+### Murmuration (birds)
+
+A flock of starlings at dusk.
 
 - **Flocking**: about 700–1500 birds (up to 3000) steer with the classic boids rules (separation, alignment, cohesion), using a hashed spatial grid so each step stays roughly linear in the number of birds. A slowly drifting target loosely tethers the flock, so it sweeps around the sky as one cloud and changes shape as it goes.
 - **Startle waves**: a frightened bird panics, and the panic spreads from neighbour to neighbour, fading as it goes. That's the ripple you see in real murmurations.
@@ -10,21 +16,38 @@ A flock of birds (a starling murmuration at dusk) that runs in the browser on de
 - **Birds avoid you**: in VR or AR they swerve around your head.
 - **Rendering**: all birds are drawn in a single instanced draw call. The wing beats run in the vertex shader. Each bird banks into its turns and alternates between flapping and gliding.
 
+### Butterfly meadow
+
+A summer meadow full of flowers and a few dozen butterflies of eight species.
+
+- **Behaviour**: butterflies flutter in zig-zag legs from flower to flower, glide now and then, land, and bask, slowly opening and closing their wings.
+- **Landing on your hand**: hold a hand still, palm or back of the hand facing up, and after a moment a nearby butterfly *sometimes* comes over and lands on it. A palm takes up to two. It rides along while you move gently, and flies off if you move suddenly, turn your hand over, or after a while.
+- **Other perches**: a Quest controller held level works too, and gives a small haptic tick when a butterfly lands on it. On desktop and phones, press and hold still to hold out a flower instead.
+- **Shooing and calling**: tapping or pulling the trigger near butterflies shoos them away. Grip calls them over to flutter around your hand.
+- **AR**: you get a ring of flowers around your feet, with the butterflies flying in your room.
+
 ## Controls
 
-| Where | Look around | Scatter the flock | Call the flock | Hawk |
-| --- | --- | --- | --- | --- |
-| Desktop | drag to orbit, scroll to zoom | click, or hold the right mouse button and sweep | — | `H` key / Settings |
-| Phone | drag to orbit, pinch to zoom; **Inside the flock** uses the gyroscope | tap | — | Settings |
-| Quest VR / AR, controllers | your head | trigger | hold grip: the birds swirl around your hand | A / X button |
-| Quest VR / AR, hand tracking | your head | right-hand pinch | left-hand pinch | set it before entering |
-| Phone AR | move the phone | tap the screen | — | Settings |
+| Where | Look around | Birds | Butterflies |
+| --- | --- | --- | --- |
+| Desktop | drag to orbit, scroll to zoom | click or hold the right button to scatter · `H` toggles the hawk | press and hold still to hold out a flower · click to shoo |
+| Phone | drag to orbit, pinch to zoom; the **Inside** view uses the gyroscope | tap to scatter | hold your finger still to hold out a flower · tap to shoo |
+| Quest, controllers | your head | trigger scatters · grip calls · A / X hawk | hold a controller level and still · trigger shoos · grip calls |
+| Quest, hand tracking | your head | right pinch scatters · left pinch calls | hold a hand still, palm or back up · right pinch shoos · left pinch calls |
+| Phone AR | move the phone | tap to scatter | tap to shoo |
 
-**Inside the flock** puts the camera in the middle of the flock at standing height, like VR without a headset. On phones it follows the gyroscope, and dragging adjusts the heading. iOS asks for motion permission the first time.
+B / Y on a Quest controller switches to the next scene. The hawk can't be toggled with hand tracking, so set it before entering VR.
 
-In AR the whole flock shrinks to fit your room: it centres on where you stand and flies between knee and head height.
+The **Inside the flock** / **Stand in the meadow** button puts the camera in the middle of the scene at standing height, like VR without a headset. On phones it follows the gyroscope, and dragging adjusts the heading. iOS asks for motion permission the first time.
 
-URL options: `?birds=2000` sets the flock size, `?hawk=1` starts with the hawk. Settings are remembered per browser.
+In AR the flock shrinks to fit your room. It centres on where you stand and flies between knee and head height.
+
+**URL options:**
+- `?scene=birds` or `?scene=butterflies` picks the scene.
+- `?birds=2000` sets the flock size, and `?hawk=1` starts with the hawk.
+- `?butterflies=80` sets how many butterflies there are.
+
+Settings are remembered per browser.
 
 ## Running it
 
@@ -52,20 +75,29 @@ adb reverse tcp:8000 tcp:8000
 
 - **Meta Quest Browser**: shows *Enter VR* and *Enter AR* (passthrough). Controller and hand models come from the WebXR input-profiles CDN.
 - **Android Chrome** (with ARCore): shows *Enter AR*. While AR is running, a DOM overlay provides an *Exit AR* button.
-- **iPhone / iPad Safari**: there's no WebXR, so you get the 3D view and the gyroscope-driven *Inside the flock* mode.
+- **iPhone / iPad Safari**: there's no WebXR, so you get the 3D view and the gyroscope-driven *Inside* view.
 - **Desktop Chrome / Edge with a PC VR headset** (SteamVR, Quest Link): *Enter VR* works the same as on Quest.
 
 ## Code layout
 
 ```
-index.html           page, UI, import map (three.js r180 from jsDelivr)
+index.html              page, scene menu, import map (three.js r180 from jsDelivr)
 style.css
-src/main.js          renderer, scene, views, pointer input, XR session lifecycle, main loop
-src/flock.js         boids simulation (Flock) and the hawk (Predator); pure JS, no three.js
-src/birds.js         bird geometry and the instanced, wing-flapping material
-src/environment.js   dusk sky shader, terrain, lake, trees, lights, fog
-src/xr.js            WebXR support check, session start, controller and hand input
-src/look.js          first-person look controls (gyroscope or drag)
+src/main.js             scene host: renderer, views, input (bursts, beams, calls, perches), XR lifecycle, UI
+src/scenes/murmuration.js   the birds scene
+src/scenes/meadow.js        the butterfly scene
+src/flock.js            boids simulation (Flock) and the hawk (Predator); pure JS, no three.js
+src/birds.js            bird geometry and the instanced, wing-flapping material
+src/butterflies.js      butterfly behaviour (ButterflySwarm) and the instanced wing-flapping mesh
+src/butterflyAtlas.js   procedurally painted wing patterns for the eight species
+src/meadowFlora.js      flowers (with landing spots) and wind-swayed grass
+src/perch.js            stillness tracking for hands/controllers, and the hold-out flower
+src/environment.js      sky shader, terrain, lake, trees, lights, fog (dusk and day presets)
+src/xr.js               WebXR support check, session start, controller and hand input, hand/controller perches
+src/look.js             first-person look controls (gyroscope or drag)
 ```
 
-All flocking parameters live in `FLOCK_PARAMS` in `src/flock.js`. The simulation works in metres, inside a soft-walled cylinder about 32 m across, so you can tune it without touching the rendering code.
+A scene is a small object with an environment, content, settings, hints and `update(dt, input)`. The interface is documented at the top of `src/main.js`, so adding another scene means writing one module and listing it in `SCENES`.
+
+- **Flocking** parameters live in `FLOCK_PARAMS` in `src/flock.js`. The simulation works in metres, inside a soft-walled cylinder about 32 m across, so you can tune it without touching the rendering code.
+- **Butterfly behaviour** is set by `BUTTERFLY_PARAMS` in `src/butterflies.js`. For example, `perchDelay` and `perchRate` control how long you have to hold still and how readily a butterfly comes to you.
