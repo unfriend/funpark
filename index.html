@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f2d5c">
+  <meta name="description" content="A murmuration of birds at dusk, in your browser, on your phone, or around you in VR/AR.">
+  <title>Murmuration</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="ui">
+    <section class="card">
+      <h1>Murmuration</h1>
+      <p id="hint"></p>
+      <p id="xr-help" hidden>In VR/AR: trigger or pinch to scatter · grip to call the flock · A/X for the hawk</p>
+      <p id="xr-note"></p>
+      <details>
+        <summary>Settings</summary>
+        <label class="row">
+          <span>Birds</span>
+          <input id="count" type="range" min="100" step="100">
+          <output id="count-out"></output>
+        </label>
+        <label class="row">
+          <input id="hawk" type="checkbox">
+          <span>Hawk (it hunts, the flock flees)</span>
+        </label>
+      </details>
+    </section>
+
+    <nav class="actions">
+      <button id="btn-vr" class="primary" hidden>Enter VR</button>
+      <button id="btn-ar" class="primary" hidden>Enter AR</button>
+      <button id="btn-view"></button>
+    </nav>
+
+    <div id="toast" role="status" hidden></div>
+  </div>
+
+  <!-- Shown over the camera view during phone AR (WebXR DOM overlay). -->
+  <div id="xr-overlay">
+    <button id="btn-exit-ar">Exit AR</button>
+  </div>
+
+  <noscript>This needs JavaScript and WebGL.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

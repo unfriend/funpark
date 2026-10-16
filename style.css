@@ -1,0 +1,143 @@
+:root {
+  --ink: #f6eee9;
+  --ink-dim: rgba(246, 238, 233, 0.72);
+  --glass: rgba(24, 28, 52, 0.55);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --accent: #ffc58a;
+  --accent-ink: #2a1c12;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #c89386;
+  color: var(--ink);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app, #app canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* we handle drags and pinches ourselves */
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+#ui > * { pointer-events: auto; }
+
+.card {
+  max-width: min(360px, 100%);
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.card p {
+  margin: 0 0 6px;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+
+#xr-note:empty { display: none; }
+
+details { margin-top: 6px; font-size: 14px; }
+summary { cursor: pointer; color: var(--ink); user-select: none; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.row input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.row output { min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; }
+
+.actions {
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 20px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass);
+  color: var(--ink);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+button:hover { border-color: rgba(255, 255, 255, 0.35); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+button[hidden] { display: none; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 64px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(20, 20, 30, 0.85);
+  font-size: 14px;
+}
+#toast[hidden] { display: none; }
+
+/* Hidden page UI while a headset/AR session is running. */
+body.in-xr #ui { display: none; }
+
+#xr-overlay { display: none; }
+body.in-ar #xr-overlay {
+  display: block;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+#btn-exit-ar {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  .card { padding: 12px 14px; }
+  h1 { font-size: 18px; }
+}
