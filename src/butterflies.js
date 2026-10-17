@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WING_HULL } from './butterflyAtlas.js';
 
 // Butterflies: a few dozen individuals, each a small state machine.
 //   FLY       erratic fluttering legs between flowers, gliding now and then
@@ -24,24 +25,21 @@ export const BUTTERFLY_PARAMS = {
 const WING_CLOSED = 1.45; // rad above horizontal: wings held together over the back
 const WING_OPEN = 0.25; // basking, nearly flat
 
-// Relative wingspans, so a morpho is a bit grander than a common blue.
-function sizeFor(name = '') {
-  const sizes = { morpho: 1.25, swallowtail: 1.15, monarch: 1.05, admiral: 0.95, peacock: 0.95, brimstone: 0.9, white: 0.85, blue: 0.7 };
-  for (const [k, v] of Object.entries(sizes)) if (name.toLowerCase().includes(k)) return v;
-  return 1;
-}
+// Near life-size wingspans from the atlas (1 = the 12.4 cm reference wing),
+// with the tiniest species nudged up a little so they still read in VR.
+const sizeFor = (species) => Math.max(0.55, species.scale ?? 1) * 1.1;
 
 export class ButterflySwarm {
   /**
    * @param {number} count
-   * @param {{ sites: {position: THREE.Vector3, normal: THREE.Vector3}[], species: {name: string}[] }} opts
+   * @param {{ sites: {position: THREE.Vector3, normal: THREE.Vector3}[], species: {scale?: number}[] }} opts
    */
   constructor(count, { sites, species }) {
     this.params = { ...BUTTERFLY_PARAMS };
     this.sites = sites;
     this.activeSites = sites.length;
     this.flowerTaken = new Uint8Array(sites.length);
-    this.speciesSizes = species.map((s) => sizeFor(s.name));
+    this.speciesSizes = species.map(sizeFor);
     this.list = [];
     this.tmp = {
       goal: new THREE.Vector3(), quat: new THREE.Quaternion(), up: new THREE.Vector3(), d: new THREE.Vector3(),
@@ -385,9 +383,10 @@ export class ButterflySwarm {
 // --- rendering ------------------------------------------------------------------
 
 // Body along +Z (head forward), wings in the XZ plane hinged at the body.
-// Wing quads map tile-local UVs per butterflyAtlas.js: u = 0 at the hinge,
-// v = 1 at the head end; the left wing mirrors the right. The body samples the
-// tile's opaque body-colour patch in the bottom-left corner.
+// Each wing is the atlas's convex WING_HULL over a 60 x 80 mm area, mapping
+// tile-local UVs per butterflyAtlas.js (u = 0 at the hinge, v = 1 at the head
+// end), so the tile's opaque body-colour patch, which the body samples, stays
+// outside the wing. The left wing mirrors the right.
 function createButterflyGeometry() {
   const pos = [], uv = [], wing = [];
   const BODY_UV = [0.045, 0.045];
@@ -400,15 +399,18 @@ function createButterflyGeometry() {
     tri(F, U, R); tri(F, R, D); tri(F, D, L); tri(F, L, U);
     tri(B, R, U); tri(B, D, R); tri(B, L, D); tri(B, U, L);
   };
-  segment(-0.004, 0.024, 0.0042); // head + thorax
-  segment(-0.034, 0.002, 0.003); // abdomen
-  for (const s of [1, -1]) tri([s * 0.0008, 0.002, 0.021], [s * 0.0018, 0.002, 0.021], [s * 0.009, 0.007, 0.043]); // antennae
+  // Sized to where the painted wings meet the body (about z -0.021 to +0.013).
+  segment(-0.004, 0.017, 0.0042); // head + thorax
+  segment(-0.027, 0.001, 0.003); // abdomen
+  for (const s of [1, -1]) tri([s * 0.0008, 0.002, 0.014], [s * 0.0018, 0.002, 0.014], [s * 0.009, 0.007, 0.034]); // antennae
 
-  const X0 = 0.002, X1 = 0.062, Z0 = -0.042, Z1 = 0.038;
   for (const s of [1, -1]) {
-    const corner = (x, z) => [s * x, 0, z, (x - X0) / (X1 - X0), (z - Z0) / (Z1 - Z0)];
-    const quad = [corner(X0, Z0), corner(X1, Z0), corner(X1, Z1), corner(X0, Z0), corner(X1, Z1), corner(X0, Z1)];
-    for (const [x, y, z, u, v] of quad) { pos.push(x, y, z); uv.push(u, v); wing.push(1); }
+    const vert = ([u, v]) => { pos.push(s * (0.002 + u * 0.06), 0, -0.042 + v * 0.08); uv.push(u, v); wing.push(1); };
+    for (let i = 1; i < WING_HULL.length - 1; i++) {
+      // Fan from vertex 0; mirrored wings get the reverse winding.
+      const [b, c] = s > 0 ? [WING_HULL[i], WING_HULL[i + 1]] : [WING_HULL[i + 1], WING_HULL[i]];
+      vert(WING_HULL[0]); vert(b); vert(c);
+    }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));

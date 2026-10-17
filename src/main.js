@@ -479,4 +479,4 @@ const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
 for (const id of SCENE_IDS) idle(() => load(id), { timeout: 4000 });
 
 // Handy for poking at the app from the console (and for the tests).
-window.app = { renderer, scene, camera, world, xrInput, wandPerch, get current() { return current; }, activate, loaded };
+window.wings = { renderer, scene, camera, world, xrInput, wandPerch, get current() { return current; }, activate, loaded };

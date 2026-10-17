@@ -91,7 +91,7 @@ export class XRInput {
         controller, grip, hand, ray, inputSource: null,
         selecting: false, squeezing: false, buttons: [false, false], touchStart: 0,
         // A palm fits two butterflies side by side; a controller top fits one.
-        handPerch: new Perch('hand', { capacity: 2, spots: [[0, 0.005], [0.022, -0.022]] }),
+        handPerch: new Perch('hand', { capacity: 2, spots: [[-0.008, 0.01], [0.022, -0.026]] }),
         controllerPerch: new Perch('controller', {
           capacity: 1,
           onLand: () => state.inputSource?.gamepad?.hapticActuators?.[0]?.pulse?.(0.3, 35),

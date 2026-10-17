@@ -166,7 +166,7 @@ function buildHeads(rand) {
     for (let k = 0; k < 5; k++) {
       petal(h, ((k + jit(0.2)) / 5) * TAU, {
         r0: 0.0025, y0: 0.0012, len: 0.021, w: [0.011, 0.0195, 0.0165], t: [0.28, 0.68, 0.94], tip: 0.06,
-        elev: 0.62 + jit(0.15), curl: -0.3, cup: 0.22, colors: [[0.7, 0.45, 0.1], [0.95, 0.85, 0.75], 0xffffff, 0xffffff],
+        elev: 0.62 + jit(0.15), curl: -0.3, cup: 0.22, colors: [[0.85, 0.66, 0.22], [0.97, 0.92, 0.8], 0xffffff, 0xffffff],
       });
     }
     return add(h);
@@ -186,8 +186,8 @@ function buildHeads(rand) {
       const inner = k % 2 === 1; // two inner petals sit higher and more upright
       petal(h, (k / 4) * TAU + jit(0.2), {
         r0: 0.0042, y0: inner ? 0.0016 : 0.0006, len: (inner ? 0.041 : 0.047) * (1 + jit(0.08)),
-        w: inner ? [0.025, 0.05, 0.045] : [0.029, 0.058, 0.051], t: [0.2, 0.66, 0.95], tip: 0.05,
-        elev: elev + (inner ? 0.22 : 0) + jit(0.12), curl, cup: 0.24,
+        w: inner ? [0.026, 0.056, 0.046] : [0.03, 0.064, 0.052], t: [0.2, 0.6, 0.92], tip: 0.07,
+        elev: elev + (inner ? 0.22 : 0) + jit(0.12), curl, cup: 0.17,
         colors: [[0.03, 0.025, 0.03], [0.8, 0.8, 0.8], [1, 1, 1], [1.04, 1.04, 1.04]],
       });
     }
@@ -225,16 +225,16 @@ function buildHeads(rand) {
     const h = newHead(), L = 0.12;
     patch(h, (row, col) => {
       if (row === 0) return [0, 0, 0];
-      const f = [0.45, 0.88, 1][row - 1], a = (col / 3) * TAU, r = 0.0042 * (1 - f * 0.9);
+      const f = [0.45, 0.88, 1][row - 1], a = (col / 3) * TAU, r = 0.0045 * (1 - f * 0.9);
       return [Math.cos(a) * r, L * f, Math.sin(a) * r];
-    }, [0x4a7a2a, 0x6a5aa0, [0.75, 0.62, 1.0], [0.9, 0.8, 1.0]], 0, [0, 1, 0],
+    }, [[0.5, 0.5, 0.5], [0.8, 0.8, 0.8], [1.15, 1.12, 1.1], [1.3, 1.25, 1.2]], 1, [0, 1, 0],
     (row, col) => [Math.cos((col / 3) * TAU) * 0.8, 0.6, Math.sin((col / 3) * TAU) * 0.8]);
     for (let i = 0; i < 5; i++) {
       for (let j = 0; j < 3; j++) {
         const f = i / 4, k = lerp(1, 0.55, f);
         petal(h, ((j + i * 0.5 + jit(0.3)) / 3) * TAU, {
-          r0: 0.0028 * (1 - f * 0.5), y0: L * (0.05 + 0.74 * f), len: 0.019 * k, w: [0.008 * k, 0.0135 * k, 0.011 * k],
-          t: [0.3, 0.7, 0.95], tip: 0.08, elev: lerp(0.15, 0.75, f), curl: 1.1, cup: 0.35,
+          r0: 0.0035 * (1 - f * 0.5), y0: L * (0.04 + 0.74 * f), len: 0.028 * k, w: [0.011 * k, 0.02 * k, 0.016 * k],
+          t: [0.3, 0.7, 0.95], tip: 0.08, elev: lerp(0.0, 0.65, f), curl: 1.0, cup: 0.3,
           colors: [[0.55, 0.5, 0.6], [0.9, 0.9, 0.95], [1.05 + f * 0.25, 1.05 + f * 0.2, 1.05 + f * 0.15], [1.15 + f * 0.3, 1.15 + f * 0.25, 1.15 + f * 0.2]],
         });
       }
@@ -246,13 +246,13 @@ function buildHeads(rand) {
   // share: fraction of the meadow; height: stem length (m); scale: head size;
   // colors: instance tints for the petals; stem: a tint for the stem and leaves.
   const types = [
-    { share: 0.24, height: [0.26, 0.46], scale: [0.88, 1.12], heads: [daisy(0.1, -0.6), daisy(0.32, -0.32)],
+    { share: 0.24, height: [0.26, 0.46], scale: [0.92, 1.15], heads: [daisy(0.1, -0.6), daisy(0.32, -0.32)],
       colors: [0xffffff, 0xfffcf2, 0xf9f7ff], stem: 0xffffff },
-    { share: 0.16, height: [0.24, 0.4], scale: [0.9, 1.15], heads: [buttercup()],
+    { share: 0.16, height: [0.27, 0.42], scale: [0.95, 1.2], heads: [buttercup()],
       colors: [0xffd21c, 0xffc414, 0xffdb2e], stem: 0xf2ffe6 },
-    { share: 0.18, height: [0.42, 0.68], scale: [0.88, 1.14], heads: [poppy(0.72, -0.62), poppy(1.0, -0.38)],
+    { share: 0.18, height: [0.42, 0.68], scale: [0.88, 1.14], heads: [poppy(0.62, -0.75), poppy(0.95, -0.5)],
       colors: [0xe8251a, 0xf23a1c, 0xd81e20, 0xf0521c], stem: 0xd8ecc8 },
-    { share: 0.14, height: [0.38, 0.62], scale: [0.95, 1.15], heads: [cornflower()],
+    { share: 0.14, height: [0.38, 0.62], scale: [1.0, 1.22], heads: [cornflower()],
       colors: [0x3b6ff0, 0x4a86f6, 0x5866e0, 0x2f5fe0], stem: 0xc8dcc8 },
     { share: 0.19, height: [0.48, 0.72], scale: [0.88, 1.12], heads: [cosmos(0.08, -0.25, 0.1), cosmos(0.3, -0.35, 0.16)],
       colors: [0xf27ab4, 0xe2489a, 0xf6b9d6, 0xfbf0f6, 0xbb68d8, 0xd9508f], stem: 0xffffff },
@@ -332,7 +332,7 @@ function stemGeometry() {
     const y = r / (RINGS - 1), radius = lerp(0.0024, 0.0016, y);
     for (let s = 0; s < SIDES; s++) {
       const a = (s / SIDES) * TAU;
-      vertex([BEND * y * y + Math.cos(a) * radius, y, Math.sin(a) * radius], shade(0x355f1c, 0x6a9a3a, y));
+      vertex([BEND * y * y + Math.cos(a) * radius, y, Math.sin(a) * radius], shade(0x426f24, 0x7cab44, y));
     }
   }
   for (let r = 0; r < RINGS - 1; r++) {
@@ -348,14 +348,15 @@ function stemGeometry() {
       const r = 0.002 + len * f, rise = len * (0.75 * f - 0.62 * f * f) + lift;
       return [BEND * y * y + r * dx - side * dz, y + rise * toUnits, r * dz + side * dx];
     };
-    const base = vertex(at(0, 0, 0), 0x3f6e22);
-    const rows = [[0.3, width, 0x4f8a2a], [0.66, width * 0.72, 0x5f9a32]].map(([f, w, c]) =>
+    const base = vertex(at(0, 0, 0), 0x4a7a28);
+    const rows = [[0.3, width, 0x5e9a32], [0.66, width * 0.72, 0x70aa3c]].map(([f, w, c]) =>
       [-1, 0, 1].map((s) => vertex(at(f, s * w * 0.5, s === 0 ? 0 : w * 0.18), c)));
-    const tip = vertex(at(1, 0, 0), 0x78ad40);
+    const tip = vertex(at(1, 0, 0), 0x8abc4c);
     const [[l1, c1, r1], [l2, c2, r2]] = rows;
-    index.push(base, l1, c1, base, c1, r1, l1, l2, c2, l1, c2, c1, c1, c2, r2, c1, r2, r1, l2, tip, c2, c2, tip, r2);
+    index.push(base, c1, l1, base, r1, c1, l1, c2, l2, l1, c1, c2, c1, r2, c2, c1, r1, r2, l2, c2, tip, c2, r2, tip);
   };
-  leaf(0.2, 1.7, 0.07, 0.012);
+  leaf(0.03, 0.4, 0.09, 0.014);
+  leaf(0.2, 2.3, 0.07, 0.012);
   leaf(0.42, -1.3, 0.052, 0.01);
 
   const geometry = new THREE.BufferGeometry();
@@ -363,6 +364,15 @@ function stemGeometry() {
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(color, 3));
   geometry.setIndex(index);
   geometry.computeVertexNormals();
+  // Tip the stem's normals up a little: a few-mm stem should catch the sky, not
+  // read as a black wire from its shady side.
+  const n = geometry.attributes.normal, v = new THREE.Vector3();
+  for (let i = 0; i < SIDES * RINGS; i++) {
+    v.fromBufferAttribute(n, i);
+    v.y += 0.5;
+    v.normalize();
+    n.setXYZ(i, v.x, v.y, v.z);
+  }
   return geometry;
 }
 
@@ -384,8 +394,8 @@ function layoutFlowers(rand, types, count, nearCount) {
       const r = Math.hypot(x, z);
       if ((r >= rMin && r <= rMax && free(x, z, gap)) || tries > 60) {
         // Give up gracefully on a crowded spot: pull it into range, overlap allowed.
-        const k = THREE.MathUtils.clamp(r, rMin, rMax) / (r || 1);
-        spots.push([x * k || rMin, z * k, type]);
+        const k = r > 0 ? THREE.MathUtils.clamp(r, rMin, rMax) / r : 0;
+        spots.push(r > 0 ? [x * k, z * k, type] : [rMin, 0, type]);
         return;
       }
     }
@@ -401,7 +411,7 @@ function layoutFlowers(rand, types, count, nearCount) {
   }
   for (let i = 0; i < nearCount; i++) {
     const b = bunches[i % bunches.length];
-    place(() => [b.x + gauss(rand) * 0.2, b.z + gauss(rand) * 0.2, rand() < 0.8 ? b.type : pickType(rand, types)], 0.7, 2.2, 0.075);
+    place(() => [b.x + gauss(rand) * 0.14, b.z + gauss(rand) * 0.14, rand() < 0.8 ? b.type : pickType(rand, types)], 0.74, 2.16, 0.075);
   }
 
   // Drifts: elongated patches, mostly of one type, plus a few strays anywhere.
@@ -422,7 +432,7 @@ function layoutFlowers(rand, types, count, nearCount) {
       for (d of drifts) if ((x -= d.w) <= 0) break;
       const u = gauss(rand) * d.rx * 0.5, v = gauss(rand) * d.ry * 0.5;
       return [d.x + u * d.c - v * d.s, d.z + u * d.s + v * d.c, rand() < 0.82 ? d.type : pickType(rand, types)];
-    }, 0.6, 12.3, 0.08);
+    }, 0.66, 12.3, 0.08);
   }
   return spots;
 }
@@ -461,6 +471,8 @@ export function createFlowers({ count = 520, nearCount = 60, heightAt = terrainH
   stemMaterial.customProgramCacheKey = () => 'meadow-stem';
   const stems = new THREE.InstancedMesh(stemGeometry(), stemMaterial, count);
   const headMesh = new THREE.InstancedMesh(headGeometry, headMaterial(texture), count);
+  // The head shader reads instanceColor, so it must exist even with no flowers.
+  headMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
   stems.name = 'flower-stems';
   headMesh.name = 'flower-heads';
 
@@ -472,14 +484,19 @@ export function createFlowers({ count = 520, nearCount = 60, heightAt = terrainH
   for (let i = 0; i < count; i++) {
     const [x, z, t] = spots[i], type = types[t];
     const length = lerp(type.height[0], type.height[1], rand());
-    // Lean the stem at its root; its built-in bend brings the top back nearer upright.
-    euler.set(0, rand() * TAU, 0.04 + rand() * 0.16, 'YXZ');
-    q.setFromEuler(euler);
-    m.compose(p.set(x, heightAt(x, z) - 0.01, z), q, s.set(1, length, 1));
+    // Lean the stem at its root; its built-in bend brings the top back nearer
+    // upright. Re-roll (leaning less) if that puts the head outside its band.
+    const [near, far] = i < nearCount ? [0.7, 2.2] : [0.6, Infinity];
+    p.set(x, heightAt(x, z) - 0.01, z);
+    for (let tries = 0; tries < 10; tries++) {
+      q.setFromEuler(euler.set(0, rand() * TAU, (0.04 + rand() * 0.16) * (1 - tries / 10), 'YXZ'));
+      top.set(BEND, 1, 0).applyMatrix4(m.compose(p, q, s.set(1, length, 1)));
+      const r = Math.hypot(top.x, top.z);
+      if (r >= near && r <= far) break;
+    }
     stems.setMatrixAt(i, m);
     stems.setColorAt(i, color.set(type.stem).multiplyScalar(0.9 + rand() * 0.2));
 
-    top.set(BEND, 1, 0).applyMatrix4(m);
     up.set(2 * BEND, length, 0).applyQuaternion(q).normalize();
     up.x += (rand() - 0.5) * 0.24;
     up.z += (rand() - 0.5) * 0.24;
@@ -509,42 +526,58 @@ export function createFlowers({ count = 520, nearCount = 60, heightAt = terrainH
 }
 
 // --- grass --------------------------------------------------------------------------
-// One clump of tapered, arching blades, authored at GRASS_H and scaled per instance.
-const BLADES = 6, GRASS_H = 0.3;
+// One clump, authored at GRASS_H and scaled per instance: a few long arching
+// blades (three segments) over a skirt of shorter, broader ones (two segments).
+const GRASS_H = 0.3;
+const LONG = { rows: [0, 0.4, 0.75, 1], widths: [1, 0.85, 0.55, 0] };
+const SHORT = { rows: [0, 0.55, 1], widths: [1, 0.7, 0] };
 
 function clumpGeometry(rand) {
   const pos = [], normal = [], color = [], index = [];
-  const root = new THREE.Color(0x24401a), mid = new THREE.Color(0x4a8a2c), tip = new THREE.Color(0xa9c95a);
-  const straw = new THREE.Color(0xd2cf7a), c = new THREE.Color();
+  const root = new THREE.Color(0x2f5a1c), mid = new THREE.Color(0x5a9a36), tip = new THREE.Color(0xb4d46a);
+  const straw = new THREE.Color(0xd8d68a), c = new THREE.Color();
   const tangent = new THREE.Vector3(), side = new THREE.Vector3(), n = new THREE.Vector3();
+  const BLADES = 9;
   for (let b = 0; b < BLADES; b++) {
-    const az = ((b + (rand() - 0.5) * 0.7) / BLADES) * TAU, dx = Math.cos(az), dz = Math.sin(az);
-    const off = 0.006 + rand() * 0.028;
-    const height = GRASS_H * (0.55 + rand() * 0.45), width = 0.007 + rand() * 0.006;
-    const lean = 0.1 + rand() * 0.32, bend = 0.25 + rand() * 0.8; // from vertical at the root, plus towards the tip
-    const twist = (rand() - 0.5) * 1.2, dry = rand() * rand() * 0.6;
+    const long = b % 3 === 0, kind = long ? LONG : SHORT;
+    // Roots scattered over a small patch, each blade leaning roughly away from the
+    // middle, so clumps knit together instead of reading as separate stars.
+    const ra = ((b + rand() * 0.8) / BLADES) * TAU, off = 0.07 * Math.sqrt(rand());
+    const ox = Math.cos(ra) * off, oz = Math.sin(ra) * off;
+    const az = ra + (rand() - 0.5) * 1.8, dx = Math.cos(az), dz = Math.sin(az);
+    const height = GRASS_H * (long ? 0.8 + rand() * 0.2 : 0.35 + rand() * 0.3);
+    const width = long ? 0.009 + rand() * 0.005 : 0.014 + rand() * 0.01;
+    // Angle from vertical at the root, plus more towards the tip.
+    const lean = long ? 0.08 + rand() * 0.25 : 0.45 + rand() * 0.6, bend = long ? 0.5 + rand() * 0.8 : 0.3 + rand() * 0.5;
+    const twist = (rand() - 0.5) * 1.2, dry = rand() * rand() * 0.7, shade = 0.85 + rand() * 0.3;
     const first = pos.length / 3;
-    [0, 0.38, 0.72, 1].forEach((t, i) => {
+    kind.rows.forEach((t, i) => {
       const th = lean + bend * t;
-      const r = off + (height / bend) * (Math.cos(lean) - Math.cos(th));
+      const r = (height / bend) * (Math.cos(lean) - Math.cos(th));
       const y = (height / bend) * (Math.sin(th) - Math.sin(lean));
       const sa = az + Math.PI / 2 + twist * t;
       side.set(Math.cos(sa), 0, Math.sin(sa));
       tangent.set(Math.sin(th) * dx, Math.cos(th), Math.sin(th) * dz);
       n.crossVectors(side, tangent).normalize();
       if (n.y < 0) n.negate();
-      n.lerp(UP, 0.45).normalize(); // soften: a clump reads as a mass, not as facets
-      if (t < 0.5) c.copy(root).lerp(mid, t / 0.5);
-      else c.copy(mid).lerp(tip, (t - 0.5) / 0.5).lerp(straw, dry * (t - 0.5) * 2);
-      const half = width * 0.5 * [1, 0.9, 0.6, 0][i];
-      for (const k of i === 3 ? [0] : [-1, 1]) {
-        pos.push(r * dx + side.x * half * k, y, r * dz + side.z * half * k);
+      n.lerp(UP, 0.35).normalize(); // soften: a clump reads as a mass, not as facets
+      if (t < 0.45) c.copy(root).lerp(mid, t / 0.45);
+      else c.copy(mid).lerp(tip, (t - 0.45) / 0.55).lerp(straw, dry * (t - 0.45) * 1.8);
+      c.multiplyScalar(shade);
+      const half = width * 0.5 * kind.widths[i];
+      for (const k of t === 1 ? [0] : [-1, 1]) {
+        pos.push(ox + r * dx + side.x * half * k, y, oz + r * dz + side.z * half * k);
         normal.push(n.x, n.y, n.z);
         color.push(c.r, c.g, c.b);
       }
     });
-    const [l0, r0, l1, r1, l2, r2, t3] = [0, 1, 2, 3, 4, 5, 6].map((k) => first + k);
-    index.push(l0, r0, l1, r0, r1, l1, l1, r1, l2, r1, r2, l2, l2, r2, t3);
+    const quads = kind.rows.length - 2;
+    for (let q = 0; q < quads; q++) {
+      const l = first + q * 2;
+      index.push(l, l + 1, l + 2, l + 1, l + 3, l + 2);
+    }
+    const l = first + quads * 2;
+    index.push(l, l + 1, l + 2);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -593,22 +626,28 @@ export function createGrass({ count = 2600, radius = 14, heightAt = terrainHeigh
   mesh.name = 'grass';
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
   const color = new THREE.Color();
+  const R0 = 2.5, spread = Math.log(1 + (radius / R0) ** 2);
+  const CLEAR = 0.42; // clump centres; their roots spread ~0.1 m, so the 0.35 m round your feet stays bare
   for (let i = 0; i < count; i++) {
-    let x, z, patchiness;
+    let x, z, r, patchiness;
     for (let tries = 0; ; tries++) {
-      const r = 0.35 + (radius - 0.35) * Math.pow(rand(), 1.45), a = rand() * TAU;
+      // Density falls off as 1 / (1 + (r / R0)²): thick round your feet, thinner far
+      // out, where bigger clumps (below) and the grazing view fill the gaps.
+      r = R0 * Math.sqrt(Math.exp(rand() * spread) - 1);
+      const a = rand() * TAU;
       x = Math.cos(a) * r;
       z = Math.sin(a) * r;
       patchiness = noise2(x * 0.32 + 17.3, z * 0.32 - 4.1);
-      if (rand() < 0.3 + 0.7 * patchiness || tries > 8) break; // tufts thicken where the noise is high
+      if ((r >= CLEAR && (rand() < 0.45 + 0.55 * patchiness || tries > 8)) || tries > 40) break; // tufts thicken where the noise is high
     }
-    const k = 0.8 + rand() * 0.5, tall = (0.7 + rand() * 0.65) * (0.85 + 0.3 * patchiness);
+    if (r < CLEAR) { x *= CLEAR / (r || 1); z *= CLEAR / (r || 1); r = CLEAR; }
+    const k = (0.8 + rand() * 0.5) * (1 + r * 0.13), tall = (0.8 + rand() * 0.7) * (0.85 + 0.3 * patchiness) * (1 + r * 0.02);
     q.setFromAxisAngle(UP, rand() * TAU);
     mesh.setMatrixAt(i, m.compose(p.set(x, heightAt(x, z) - 0.01, z), q, s.set(k, tall, k)));
-    // Lusher, darker patches and drier, yellower ones a few metres across.
-    const dry = smoothstep(0.55, 0.85, noise2(x * 0.22 - 3.7, z * 0.22 + 9.1));
-    const v = 0.9 + rand() * 0.2;
-    color.setRGB(lerp(0.92, 1.15, dry) * v, lerp(1.0, 1.04, dry) * v, lerp(0.95, 0.62, dry) * v);
+    // Drier, yellower patches a few metres across; the sparse spots darker and bluer.
+    const dry = smoothstep(0.45, 0.8, noise2(x * 0.22 - 3.7, z * 0.22 + 9.1)), damp = 1 - smoothstep(0.15, 0.5, patchiness);
+    const v = (0.84 + rand() * 0.26) * (1 - 0.22 * damp);
+    color.setRGB(lerp(0.88, 1.4, dry) * v, lerp(1.0, 1.1, dry) * v, lerp(lerp(0.92, 1.12, damp), 0.45, dry) * v);
     mesh.setColorAt(i, color);
   }
   mesh.computeBoundingSphere();

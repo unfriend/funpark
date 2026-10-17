@@ -51,7 +51,7 @@
     // Explain a blank page instead of leaving one (old browsers, blocked CDN, no WebGL).
     // The first, most specific message wins; later errors are usually its fallout.
     function showStartupError(message) {
-      if (window.app || document.body.classList.contains('failed')) return;
+      if (window.wings || document.body.classList.contains('failed')) return;
       document.body.classList.add('failed');
       document.getElementById('hint').textContent = "Couldn't start: " + message;
     }
