@@ -16,7 +16,7 @@ import { createMeadow } from './scenes/meadow.js';
  *   content    THREE.Group placed in `world` (stays visible in AR; never rotated)
  *   overview   { position, target, minDistance, maxDistance } for the orbit camera
  *   inside     { position, look, label } for the first-person view
- *   hints      { mouse, touch, xr } help text
+ *   hints      { mouse, touch, xr, menu? } help text (menu: a short version for the in-headset menu)
  *   settings   [{ key, type: 'range' | 'checkbox', label, min, max, step }] shown in Settings
  *   values     the scene's persisted settings (an object owned by main.js)
  *   toggles    { primary?: key toggled by A/X, keys?: { [key]: settingKey } }
@@ -276,6 +276,7 @@ const menu = new XRMenu(scene, {
     else if (action.type === 'exit') renderer.xr.getSession()?.end();
   },
 });
+menu.texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const headPose = { position: camera.position, quaternion: camera.quaternion }; // the camera follows the headset
 const gusts = []; // swings of a hand or controller, fading out
 const ripples = new Ripples(scene);
@@ -296,7 +297,7 @@ function refreshMenu() {
     scenes: SCENE_IDS.map((id) => ({ id, label: SCENES[id].tab, current: id === current.id })),
     toggles: current.settings.filter((d) => d.type === 'checkbox')
       .map((d) => ({ key: d.key, label: d.menuLabel ?? d.label, on: !!current.values[d.key] })),
-    help: current.hints.xr,
+    help: current.hints.menu ?? current.hints.xr,
     exitLabel: xrMode === 'immersive-ar' ? 'Exit AR' : 'Exit VR',
   });
 }
@@ -347,7 +348,7 @@ function placeWorld(frame) {
 renderer.xr.addEventListener('sessionend', () => {
   xrMode = null;
   xrInput.reset();
-  menu.close();
+  menu.reset(); // also hides the wrist button, which no longer gets updates
   gusts.length = 0;
   ripples.clear();
   world.position.set(0, 0, 0);
@@ -417,6 +418,7 @@ renderer.setAnimationLoop((time, frame) => {
   if (xrMode) {
     if (needsPlacement && frame) placeWorld(frame);
     xrInput.update(dt);
+    if (xrInput.wrist) xrInput.wrist.up.set(0, 1, 0).applyQuaternion(camera.quaternion); // keep the glyph level
     menu.update(dt, { pointers: xrInput.pointers, wrist: xrInput.wrist, head: headPose });
     ripples.update(dt);
   } else if (view === 'orbit') {

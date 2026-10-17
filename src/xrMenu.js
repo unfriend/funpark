@@ -30,7 +30,7 @@ const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif';
 
 const INK = '#f6eee9';
 const INK_DIM = 'rgba(246, 238, 233, 0.7)';
-const GLASS = 'rgba(24, 28, 52, 0.86)';
+const GLASS = 'rgba(24, 28, 52, 0.88)'; // translucent, but a busy flock behind mustn't hurt the text
 const GLASS_EDGE = 'rgba(255, 255, 255, 0.16)';
 const ACCENT = '#ffc58a';
 const ACCENT_HOVER = '#ffdcb8';
@@ -56,6 +56,7 @@ const POKE_DEPTH = 0.04; // but not from further behind: that reached through, o
 const POKE_REARM = 0.02; // after a press, back off this far before the next one
 const POKE_COOLDOWN = 0.4;
 const HOVER_DEPTH = 0.04; // a fingertip this close in front of a button highlights it
+const NEAR = 0.05; // a fingertip about this close to the menu takes over from its hand's ray
 const FLASH = 0.15;
 
 const WRIST_PX = 128;
@@ -144,6 +145,7 @@ export class XRMenu {
     this.height = 0; // mm
     this.widthM = W / 1000;
     this.heightM = 0; // of the mesh, a hair taller than `height` (whole pixels)
+    // Panel space: origin at the middle of the top edge, +X right, +Y up, +Z out of the face.
     this.hitX = 0; // where the last rayPanel() hit, mm from the top left
     this.hitY = 0;
     this.time = 0;
@@ -237,7 +239,11 @@ export class XRMenu {
     f.normalize();
     this.panel.position.copy(position).addScaledVector(f, OPEN_AHEAD);
     this.panel.position.y -= OPEN_DROP;
+    this.panel.updateMatrix(); // lookAt() reads the world matrix, which isn't automatic here
     this.panel.lookAt(position); // +Z (the face) toward the head: turned and tipped up to meet the eyes
+    // The panel hangs from its top edge, so the title and scene buttons stay
+    // put when the content (and so the height) changes under your finger.
+    this.panel.translateY(this.heightM / 2);
     this.panel.updateMatrix();
     this.panel.updateMatrixWorld(true);
     this.panelInverse.copy(this.panel.matrixWorld).invert();
@@ -258,6 +264,16 @@ export class XRMenu {
   toggle() {
     if (this.opened) this.close();
     else this.open();
+  }
+
+  // Session over: hide everything (update() won't run again to hide the wrist button).
+  reset() {
+    this.close();
+    this.updateWrist(null);
+    for (let i = 0; i < this.pointerList.length; i++) {
+      const s = this.pointerList[i];
+      s.hasRay = s.hasTip = s.panelPoke.armed = s.wristPoke.armed = false;
+    }
   }
 
   /**
@@ -286,35 +302,19 @@ export class XRMenu {
       const p = pointers[i];
       const s = this.pointer(p.id);
       s.panelT = s.wristT = s.panelButton = -1;
-      if (p.ray) {
-        s.hasRay = true;
-        s.origin.copy(p.ray.origin);
-        s.dir.copy(p.ray.dir);
-        if (this.opened) {
-          s.panelT = this.rayPanel(s.origin, s.dir);
-          if (s.panelT >= 0) {
-            s.panelButton = this.buttonAt(this.hitX, this.hitY);
-            if (s.panelButton >= 0) hover |= 1 << s.panelButton;
-          }
-        }
-        if (this.wristShown) {
-          s.wristT = this.rayWrist(s.origin, s.dir);
-          // Whichever the ray reaches first.
-          if (s.wristT >= 0 && s.panelT >= 0) {
-            if (s.wristT < s.panelT) s.panelT = s.panelButton = -1;
-            else s.wristT = -1;
-          }
-          if (s.wristT >= 0) wristHover = true;
-        }
-      }
+      // A fingertip close to the menu is doing the pointing: its hand's ray
+      // still hits (for select() and the laser) but doesn't highlight too.
+      let near = false;
       if (p.fingertip) {
         s.hasTip = true;
         s.tip.copy(p.fingertip);
         if (this.opened) {
           const local = this.tmp.v.copy(s.tip).applyMatrix4(this.panelInverse);
-          const b = this.buttonAt((local.x + this.widthM / 2) * 1000, (this.heightM / 2 - local.y) * 1000);
+          const b = this.buttonAt((local.x + this.widthM / 2) * 1000, -local.y * 1000);
           if (b >= 0 && local.z > -0.01 && local.z < HOVER_DEPTH) hover |= 1 << b;
           if (s.panelPoke.step(local.z, b >= 0 && ready) && press < 0) press = b;
+          near = local.z > -NEAR && local.z < NEAR * 2 && Math.abs(local.x) < this.widthM / 2 + NEAR &&
+            local.y < NEAR && local.y > -this.heightM - NEAR;
         } else {
           s.panelPoke.armed = false;
         }
@@ -324,8 +324,30 @@ export class XRMenu {
           const radial = Math.sqrt(Math.max(0, rel.lengthSq() - z * z));
           if (radial < WRIST_SIZE / 2 + WRIST_HOVER && z > -0.01 && z < WRIST_HOVER) wristHover = true;
           if (s.wristPoke.step(z, radial < WRIST_SIZE / 2 + WRIST_GRACE && ready) && press < 0) press = MAX_BUTTONS;
+          near ||= rel.lengthSq() < NEAR * NEAR * 4;
         } else {
           s.wristPoke.armed = false;
+        }
+      }
+      if (p.ray) {
+        s.hasRay = true;
+        s.origin.copy(p.ray.origin);
+        s.dir.copy(p.ray.dir);
+        if (this.opened) {
+          s.panelT = this.rayPanel(s.origin, s.dir);
+          if (s.panelT >= 0) s.panelButton = this.buttonAt(this.hitX, this.hitY);
+        }
+        if (this.wristShown) {
+          s.wristT = this.rayWrist(s.origin, s.dir);
+          // Whichever the ray reaches first.
+          if (s.wristT >= 0 && s.panelT >= 0) {
+            if (s.wristT < s.panelT) s.panelT = s.panelButton = -1;
+            else s.wristT = -1;
+          }
+        }
+        if (!near) {
+          if (s.panelButton >= 0) hover |= 1 << s.panelButton;
+          if (s.wristT >= 0) wristHover = true;
         }
       }
     }
@@ -420,9 +442,9 @@ export class XRMenu {
     if (o.z <= 0 || d.z >= -1e-6) return -1;
     const t = -o.z / d.z;
     const x = o.x + d.x * t, y = o.y + d.y * t;
-    if (Math.abs(x) > this.widthM / 2 || Math.abs(y) > this.heightM / 2) return -1;
+    if (Math.abs(x) > this.widthM / 2 || y > 0 || y < -this.heightM) return -1;
     this.hitX = (x + this.widthM / 2) * 1000;
-    this.hitY = (this.heightM / 2 - y) * 1000;
+    this.hitY = -y * 1000;
     return t;
   }
 
@@ -480,10 +502,14 @@ export class XRMenu {
       c.scenes.forEach((s, i) => bs.push({ kind: 'scene', x: PAD + i * (w + GAP), y, w, h: BUTTON_H, label: s.label, on: s.current, id: s.id }));
       y += BUTTON_H + GAP;
     }
-    for (const t of c.toggles) {
-      bs.push({ kind: 'toggle', x: PAD, y, w: INNER, h: BUTTON_H, label: t.label, on: t.on, key: t.key });
-      y += BUTTON_H + GAP;
-    }
+    // One toggle per row; two per row once there are more, so the panel stays within reach.
+    const perRow = c.toggles.length > 2 ? 2 : 1;
+    const tw = (INNER - GAP * (perRow - 1)) / perRow;
+    c.toggles.forEach((t, i) => {
+      const col = i % perRow;
+      bs.push({ kind: 'toggle', x: PAD + col * (tw + GAP), y, w: tw, h: BUTTON_H, label: t.label, on: t.on, key: t.key });
+      if (col === perRow - 1 || i === c.toggles.length - 1) y += BUTTON_H + GAP;
+    });
     this.helpLines = [];
     if (c.help) {
       ctx.font = `${HELP_SIZE}px ${FONT}`;
@@ -498,7 +524,7 @@ export class XRMenu {
       }
       if (line) this.helpLines.push(line);
       this.helpY = y + 4;
-      y += 4 + this.helpLines.length * HELP_LINE + 6;
+      y += 4 + this.helpLines.length * HELP_LINE + 8;
     } else {
       y += 2;
     }
@@ -521,6 +547,7 @@ export class XRMenu {
     this.texture.repeat.set(1, used);
     this.texture.offset.set(0, 1 - used);
     this.panelMesh.scale.set(this.widthM, this.heightM, 1);
+    this.panelMesh.position.y = -this.heightM / 2;
     if (this.flashButton >= bs.length) this.flashButton = -1;
     this.hoverMask = 0;
     this.dirty = true;

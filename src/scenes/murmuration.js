@@ -51,6 +51,7 @@ export function createMurmuration({ isMobile, values }) {
     hints: {
       mouse: 'Drag to orbit · scroll to zoom · click or hold right button to scatter · H for the hawk',
       touch: 'Drag to orbit · pinch to zoom · tap to scatter the flock',
+      menu: 'Wave a hand to scatter the flock. Trigger or right pinch: beam · grip or left pinch: call the flock · A/X: hawk.',
       xr: 'In VR/AR: wave a hand (or swing a controller) to scatter the flock · trigger or right pinch sends a beam · grip or left pinch calls the flock · A/X hawk · B/Y or the button on your left wrist opens the menu.',
     },
     settings: [

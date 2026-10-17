@@ -75,6 +75,7 @@ export function createMeadow({ isMobile, values, renderer }) {
     hints: {
       mouse: 'Drag to orbit · press and hold still to hold out a flower: a butterfly may land on it · click to shoo',
       touch: 'Drag to orbit · hold your finger still to hold out a flower: a butterfly may land on it · tap to shoo',
+      menu: 'Hold a hand still, palm or back up, and a butterfly may land on it. Wave to shoo them · grip or left pinch calls them over.',
       xr: 'Hold a hand still, palm or back up, and a butterfly may land on it (a controller held level works too). Wave to shoo them · grip or left pinch calls them over · B/Y or the button on your left wrist opens the menu.',
     },
     settings: [{ key: 'butterflies', type: 'range', label: 'Butterflies', min: 5, max: MAX_BUTTERFLIES, step: 5 }],
