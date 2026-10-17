@@ -155,7 +155,7 @@ export class ButterflySwarm {
     if (b.pos.y < P.minY) desired.y += (P.minY - b.pos.y) * 8;
     if (b.pos.y > P.maxY) desired.y -= (b.pos.y - P.maxY) * 4;
     const h = Math.hypot(b.pos.x, b.pos.z);
-    if (h > P.radius) desired.addScaledVector(d.set(-b.pos.x / h, 0, -b.pos.z / h), (h - P.radius) * 2);
+    if (h > P.radius) desired.addScaledVector(d.set(-b.pos.x / h, 0, -b.pos.z / h), (h - P.radius) * 4);
     // Keep out of the viewer's face.
     d.subVectors(b.pos, input.head);
     const dh = d.length();
@@ -197,6 +197,8 @@ export class ButterflySwarm {
     if (site) b.target.copy(site.position).add(this.tmp.d.set(rand(-1.2, 1.2), rand(0.15, 1.1), rand(-1.2, 1.2)));
     else b.target.set(rand(-2, 2), rand(0.5, 1.5), rand(-2, 2));
     b.target.y = Math.min(Math.max(b.target.y, P.minY + 0.1), P.maxY);
+    const th = Math.hypot(b.target.x, b.target.z), lim = P.radius * 0.9;
+    if (th > lim) { b.target.x *= lim / th; b.target.z *= lim / th; } // stay in the area (in AR: the room)
     b.legTimer = rand(1.5, 4);
   }
 

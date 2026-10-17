@@ -74,6 +74,7 @@ scene.add(world);
 
 const loaded = {};
 let current = null;
+let viewStale = false; // scene switched inside XR: refit the 2D view on exit
 
 // --- cameras & non-XR views ----------------------------------------------------
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.05, 1500);
@@ -131,7 +132,8 @@ function activate(id) {
   applyMode();
   settings.scene = id;
   saveSettings();
-  if (!xrMode) resetView();
+  if (xrMode) viewStale = true;
+  else resetView();
   ui.update();
 }
 
@@ -200,7 +202,7 @@ const endPointer = (e) => {
   if (e.button === 2 || e.type === 'pointercancel') pointer.beam = false;
   const d = pointer.down;
   pointer.down = null;
-  if (e.type === 'pointerup' && d && d.button === 0 && !d.moved && performance.now() - d.t < 300) {
+  if (e.type === 'pointerup' && d && d.button === 0 && !d.moved && performance.now() - d.t < HOLD_DELAY) {
     setNdc(e.clientX, e.clientY);
     addBurst(cameraRay());
   }
@@ -321,6 +323,10 @@ renderer.xr.addEventListener('sessionend', () => {
   camera.zoom = 1;
   onResize();
   controls.enabled = view === 'orbit';
+  if (viewStale) {
+    viewStale = false;
+    resetView();
+  }
   document.body.classList.remove('in-xr', 'in-ar');
 });
 
@@ -473,10 +479,28 @@ const ui = (() => {
 
 activate(settings.scene);
 
-// Build the other scenes once the page is idle, so switching (e.g. with B/Y
-// inside VR) doesn't stall on terrain generation and simulation warm-up.
+// Build the other scenes once the page is idle and compile their shaders, so
+// switching (e.g. with B/Y inside VR) doesn't stall on terrain generation,
+// simulation warm-up or shader compiles.
+async function preload(id) {
+  const s = load(id);
+  if (s === current) return;
+  const staging = new THREE.Scene();
+  staging.fog = s.env.fog;
+  staging.add(s.env.lights, s.env.group, s.content);
+  try {
+    // Only where shaders compile in the background (Quest Browser, Chrome): a
+    // synchronous compile would just move the stall to whenever the page went idle.
+    if (renderer.extensions.has('KHR_parallel_shader_compile')) {
+      await renderer.compileAsync(staging, camera);
+      staging.traverse((o) => { if (o.material?.map) renderer.initTexture(o.material.map); });
+    }
+  } catch { /* warming up is only an optimisation */ }
+  // Hand the objects back, unless the scene was activated meanwhile (which reparents them).
+  for (const o of [s.env.lights, s.env.group, s.content]) if (o.parent === staging) staging.remove(o);
+}
 const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
-for (const id of SCENE_IDS) idle(() => load(id), { timeout: 4000 });
+for (const id of SCENE_IDS) idle(() => preload(id), { timeout: 4000 });
 
 // Handy for poking at the app from the console (and for the tests).
 window.wings = { renderer, scene, camera, world, xrInput, wandPerch, get current() { return current; }, activate, loaded };

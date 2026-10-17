@@ -60,8 +60,7 @@ class TolerantGLTFLoader extends GLTFLoader {
   }
 }
 
-const TAP_MS = 300; // phone AR: shorter touches are taps
-const HOLD_MS = 350; // ...longer ones hold out a flower
+const HOLD_MS = 350; // phone AR: shorter touches are taps, longer ones hold out a flower
 
 /**
  * Tracks both XR input sources (controllers, hands, or screen taps in phone AR):
@@ -78,6 +77,7 @@ const HOLD_MS = 350; // ...longer ones hold out a flower
  */
 export class XRInput {
   constructor(renderer, scene, { onBurst, onToggle, onNext } = {}) {
+    this.renderer = renderer;
     this.onBurst = onBurst;
     this.onToggle = onToggle;
     this.onNext = onNext;
@@ -142,7 +142,7 @@ export class XRInput {
       });
       controller.addEventListener('selectend', () => {
         if (state.touchStart) {
-          if (performance.now() - state.touchStart < TAP_MS) this.onBurst?.(this.rayOf(state));
+          if (performance.now() - state.touchStart < HOLD_MS) this.onBurst?.(this.rayOf(state));
           state.touchStart = 0;
           return;
         }
@@ -168,6 +168,7 @@ export class XRInput {
   }
 
   update(dt) {
+    const blurred = this.renderer.xr.getSession()?.visibilityState === 'visible-blurred';
     for (const s of this.sources) {
       const active = s.selecting || s.squeezing;
       s.ray.material.color.setHex(active ? RAY_ACTIVE : RAY_IDLE);
@@ -181,15 +182,20 @@ export class XRInput {
       s.buttons[0] = a;
       s.buttons[1] = b;
 
-      const src = s.inputSource;
+      // While a system menu blurs the session three stops updating poses, so
+      // stale ones must not keep a perch alive.
+      const src = !blurred && s.inputSource;
       const { p, q } = this.tmp;
-      s.handPerch.update(dt, !!src?.hand && this.palmPose(s.hand, src.handedness, p, q), p, q);
-      s.controllerPerch.update(dt, !!src?.gamepad && !src.hand && s.grip.visible && this.controllerPose(s.grip, p, q), p, q);
+      s.handPerch.update(dt, !!src?.hand && s.hand.visible &&
+        this.palmPose(s.hand, src.handedness, s.handPerch.active, p, q), p, q);
+      s.controllerPerch.update(dt, !!src?.gamepad && !src.hand && s.controller.visible &&
+        this.controllerPose(s.controller, s.controllerPerch.active, p, q), p, q);
     }
   }
 
   // Landing pose on whichever side of the hand faces up (palm or back).
-  palmPose(hand, handedness, outPos, outQuat) {
+  // `held`: the perch is already active, so tolerate more tilt before letting go.
+  palmPose(hand, handedness, held, outPos, outQuat) {
     const j = hand.joints;
     const wrist = j['wrist'], index = j['index-finger-phalanx-proximal'];
     const middle = j['middle-finger-phalanx-proximal'], pinky = j['pinky-finger-phalanx-proximal'];
@@ -201,22 +207,25 @@ export class XRInput {
     b.subVectors(pinky.position, wrist.position);
     n.crossVectors(a, b).normalize();
     if (handedness === 'left') n.negate();
+    const flat = held ? 0.4 : 0.6;
     let skin;
-    if (n.y > 0.55) skin = 0.02; // palm up
-    else if (n.y < -0.55) { n.negate(); skin = 0.026; } // back of the hand up (it's thicker)
+    if (n.y > flat) skin = 0.02; // palm up
+    else if (n.y < -flat) { n.negate(); skin = 0.026; } // back of the hand up (it's thicker)
     else return false;
     outPos.lerpVectors(wrist.position, middle.position, 0.55).addScaledVector(n, skin);
     f.subVectors(middle.position, wrist.position); // along the fingers
     return this.frame(n, f, outQuat);
   }
 
-  // Landing pose on the top of a controller held roughly level.
-  controllerPose(grip, outPos, outQuat) {
+  // Landing pose on the top face of a controller held roughly level. On Quest
+  // Touch controllers the face (buttons, thumbstick) is the target-ray space's
+  // XZ plane, a few cm behind the ray origin; grip space is tilted 45 degrees.
+  controllerPose(ray, held, outPos, outQuat) {
     const { n, f } = this.tmp;
-    n.set(0, 1, 0).applyQuaternion(grip.quaternion);
-    if (n.y < 0.6) return false;
-    f.set(0, 0, -1).applyQuaternion(grip.quaternion);
-    outPos.copy(grip.position).addScaledVector(n, 0.035).addScaledVector(f, -0.01);
+    n.set(0, 1, 0).applyQuaternion(ray.quaternion);
+    if (n.y < (held ? 0.6 : 0.8)) return false;
+    f.set(0, 0, -1).applyQuaternion(ray.quaternion);
+    outPos.copy(ray.position).addScaledVector(n, 0.012).addScaledVector(f, -0.05);
     return this.frame(n, f, outQuat);
   }
 
