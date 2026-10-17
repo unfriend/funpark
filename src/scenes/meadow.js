@@ -28,19 +28,23 @@ export function createMeadow({ isMobile, values, renderer }) {
   // translated (with `world`), so orientations carry over unchanged.
   const inverse = new THREE.Matrix4();
   const wrappers = new Map(); // Perch -> its local-space pose and bookkeeping
-  const local = { rays: [], calls: [], perches: [], head: new THREE.Vector3() };
-  const toLocalRay = (r, radius) => ({
+  const local = { rays: [], calls: [], perches: [], hands: [], head: new THREE.Vector3() };
+  const toLocalRay = (r, radius, len = Infinity) => ({
     origin: r.origin.clone().applyMatrix4(inverse),
     dir: r.dir.clone().transformDirection(inverse),
     radius,
+    len,
   });
 
   function localInput(input) {
     content.updateMatrixWorld(true);
     inverse.copy(content.matrixWorld).invert();
-    local.rays.length = local.calls.length = local.perches.length = 0;
+    local.rays.length = local.calls.length = local.perches.length = local.hands.length = 0;
     for (const b of input.bursts) local.rays.push(toLocalRay(b, 0.3 + 0.6 * b.strength));
     for (const b of input.beams) local.rays.push(toLocalRay(b, 0.5));
+    // A wave of the hand shoos butterflies a couple of metres along the swing.
+    for (const g of input.gusts) local.rays.push(toLocalRay(g, 0.45, Math.min(2.5, 0.5 + g.speed * 0.6)));
+    for (const h of input.hands) local.hands.push({ pos: h.position.clone().applyMatrix4(inverse), speed: h.speed });
     // Grip / left pinch: butterflies flutter round a point just ahead of the hand.
     for (const c of input.calls) local.calls.push(c.origin.clone().addScaledVector(c.dir, 0.25).applyMatrix4(inverse));
     for (const perch of input.perches) {
@@ -71,7 +75,7 @@ export function createMeadow({ isMobile, values, renderer }) {
     hints: {
       mouse: 'Drag to orbit · press and hold still to hold out a flower: a butterfly may land on it · click to shoo',
       touch: 'Drag to orbit · hold your finger still to hold out a flower: a butterfly may land on it · tap to shoo',
-      xr: 'Hold a hand still, palm or back up, and a butterfly may land on it (a controller held level works too). Trigger shoos · grip calls them over · B/Y next scene. With hands: right pinch shoos, left pinch calls.',
+      xr: 'Hold a hand still, palm or back up, and a butterfly may land on it (a controller held level works too). Wave to shoo them · grip or left pinch calls them over · B/Y or the button on your left wrist opens the menu.',
     },
     settings: [{ key: 'butterflies', type: 'range', label: 'Butterflies', min: 5, max: MAX_BUTTERFLIES, step: 5 }],
     toggles: {},

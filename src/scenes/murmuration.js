@@ -33,10 +33,11 @@ export function createMurmuration({ isMobile, values }) {
   const attractors = [];
   const hawkRepeller = {};
 
-  function addRepellerRay(origin, dir, radius, strength) {
+  // len and radius are in sim units (metres in VR; the flock is shrunk in AR).
+  function addRepellerRay(origin, dir, radius, strength, len = 80) {
     const o = tmpA.copy(origin).applyMatrix4(simInverse);
     const d = tmpB.copy(dir).transformDirection(simInverse);
-    repellers.push({ ox: o.x, oy: o.y, oz: o.z, dx: d.x, dy: d.y, dz: d.z, len: 80, radius, strength });
+    repellers.push({ ox: o.x, oy: o.y, oz: o.z, dx: d.x, dy: d.y, dz: d.z, len, radius, strength });
   }
 
   return {
@@ -50,11 +51,11 @@ export function createMurmuration({ isMobile, values }) {
     hints: {
       mouse: 'Drag to orbit · scroll to zoom · click or hold right button to scatter · H for the hawk',
       touch: 'Drag to orbit · pinch to zoom · tap to scatter the flock',
-      xr: 'In VR/AR: trigger to scatter · grip to call the flock · A/X for the hawk · B/Y next scene. With hands: right pinch scatters, left pinch calls.',
+      xr: 'In VR/AR: wave a hand (or swing a controller) to scatter the flock · trigger or right pinch sends a beam · grip or left pinch calls the flock · A/X hawk · B/Y or the button on your left wrist opens the menu.',
     },
     settings: [
       { key: 'birds', type: 'range', label: 'Birds', min: 100, max: MAX_BIRDS, step: 100 },
-      { key: 'hawk', type: 'checkbox', label: 'Hawk (it hunts, the flock flees)' },
+      { key: 'hawk', type: 'checkbox', label: 'Hawk (it hunts, the flock flees)', menuLabel: 'Hawk' },
     ],
     toggles: { primary: 'hawk', keys: { h: 'hawk' } },
     values,
@@ -87,6 +88,13 @@ export function createMurmuration({ isMobile, values }) {
 
       for (const b of input.bursts) addRepellerRay(b.origin, b.dir, 4.5, 2.5 * b.strength);
       for (const b of input.beams) addRepellerRay(b.origin, b.dir, 3, 1.4);
+      // A swing of the hand sends a gust out along it; faster swings reach further.
+      for (const g of input.gusts) addRepellerRay(g.origin, g.dir, 3, 2.2 * g.strength, Math.min(20, 4 + g.speed * 5));
+      // Birds that come close swerve around hands, as they do around your head.
+      for (const h of input.hands) {
+        const p = tmpA.copy(h.position).applyMatrix4(simInverse);
+        repellers.push({ ox: p.x, oy: p.y, oz: p.z, dx: 0, dy: 0, dz: 0, len: 0, radius: Math.max(0.8, 0.3 * toSim), strength: 1.2 });
+      }
       for (const c of input.calls) {
         // Call the flock to a point just in front of the hand.
         const p = tmpA.copy(c.origin).addScaledVector(c.dir, mode === 'ar' ? 0.4 : 2).applyMatrix4(simInverse);

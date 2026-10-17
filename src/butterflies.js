@@ -87,8 +87,9 @@ export class ButterflySwarm {
 
   /**
    * @param {number} dt
-   * @param {object} input local-space { rays: [{origin, dir, radius}], calls: [Vector3],
-   *   perches: [{ perch: Perch, pos: Vector3, quat: Quaternion, claimed, taken: boolean[capacity] }], head: Vector3 }
+   * @param {object} input local-space { rays: [{origin, dir, radius, len?}], calls: [Vector3],
+   *   perches: [{ perch: Perch, pos: Vector3, quat: Quaternion, claimed, taken: boolean[capacity] }],
+   *   hands: [{ pos: Vector3, speed }], head: Vector3 }
    */
   update(dt, input) {
     if (!(dt > 0)) return;
@@ -308,19 +309,20 @@ export class ButterflySwarm {
     b.site = null;
   }
 
-  // Shoo: rays from taps/triggers, and hands swiping fast nearby.
+  // Shoo: rays from taps, triggers and waves, and hands swiping fast nearby.
   startle(b, input) {
     const { d } = this.tmp;
     let hit = null;
     for (const r of input.rays) {
       const t = Math.max(0, d.subVectors(b.pos, r.origin).dot(r.dir));
-      d.addScaledVector(r.dir, -t); // offset from the ray
+      if (t > (r.len ?? Infinity) + r.radius) continue;
+      d.addScaledVector(r.dir, -Math.min(t, r.len ?? Infinity)); // offset from the ray (or its end)
       if (d.lengthSq() < r.radius * r.radius) { hit = d; break; }
     }
     if (!hit) {
-      for (const w of input.perches) {
-        if (w.perch.active && w.perch.speed > 1.2 && b.pos.distanceToSquared(w.pos) < 0.12) {
-          hit = d.subVectors(b.pos, w.pos);
+      for (const h of input.hands ?? []) {
+        if (h.speed > 1.2 && b.pos.distanceToSquared(h.pos) < 0.12) {
+          hit = d.subVectors(b.pos, h.pos);
           break;
         }
       }

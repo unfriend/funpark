@@ -4,6 +4,8 @@ import { terrainHeight } from './environment.js';
 import { detectXR, startSession, XRInput } from './xr.js';
 import { LookControls } from './look.js';
 import { Perch, createWand } from './perch.js';
+import { XRMenu } from './xrMenu.js';
+import { Ripples } from './ripples.js';
 import { createMurmuration } from './scenes/murmuration.js';
 import { createMeadow } from './scenes/meadow.js';
 
@@ -22,7 +24,11 @@ import { createMeadow } from './scenes/meadow.js';
  *   set(key, value), setMode('screen' | 'vr' | 'ar'), update(dt, input)
  * where `input` (all world space) is
  *   { bursts: [{ origin, dir, strength 0..1 }], beams: [{ origin, dir }], calls: [{ origin, dir }],
+ *     gusts: [{ origin, dir, speed (m/s), strength 0..1 }]  swings of a hand or controller,
+ *     hands: [{ position, velocity, speed }]  tracked hands/controllers (XR only),
  *     perches: [Perch], head: Vector3, mode, time }
+ * Settings with type 'checkbox' also appear as toggles in the in-headset menu
+ * (labelled with `menuLabel` if given).
  */
 const SCENES = {
   murmuration: { tab: 'Birds', create: createMurmuration },
@@ -135,10 +141,6 @@ function activate(id) {
   if (xrMode) viewStale = true;
   else resetView();
   ui.update();
-}
-
-function nextScene() {
-  activate(SCENE_IDS[(SCENE_IDS.indexOf(current.id) + 1) % SCENE_IDS.length]);
 }
 
 // Backdrop, fog and clear colour for the current scene in the current mode.
@@ -264,11 +266,40 @@ function updateWand(dt) {
 
 // --- XR ---------------------------------------------------------------------
 const xrOverlay = document.getElementById('xr-overlay');
+// The page's own UI can't be seen in a headset, so VR/AR get an in-world menu:
+// opened from the button on the back of the left wrist (or above the left
+// controller), or with B/Y.
+const menu = new XRMenu(scene, {
+  onAction(action) {
+    if (action.type === 'scene') activate(action.id);
+    else if (action.type === 'toggle') toggleSetting(action.key);
+    else if (action.type === 'exit') renderer.xr.getSession()?.end();
+  },
+});
+const headPose = { position: camera.position, quaternion: camera.quaternion }; // the camera follows the headset
+const gusts = []; // swings of a hand or controller, fading out
+const ripples = new Ripples(scene);
 const xrInput = new XRInput(renderer, scene, {
   onBurst: (ray) => addBurst(ray),
   onToggle: () => toggleSetting(current.toggles.primary),
-  onNext: () => nextScene(),
+  onMenu: () => menu.toggle(),
+  onGust: (g) => {
+    gusts.push({ ...g, age: 0, life: 0.5 });
+    ripples.spawn(g.origin, g.dir);
+  },
+  ui: menu,
 });
+
+function refreshMenu() {
+  menu.setContent({
+    title: current.title,
+    scenes: SCENE_IDS.map((id) => ({ id, label: SCENES[id].tab, current: id === current.id })),
+    toggles: current.settings.filter((d) => d.type === 'checkbox')
+      .map((d) => ({ key: d.key, label: d.menuLabel ?? d.label, on: !!current.values[d.key] })),
+    help: current.hints.xr,
+    exitLabel: xrMode === 'immersive-ar' ? 'Exit AR' : 'Exit VR',
+  });
+}
 let xrMode = null;
 let referenceSpace = 'local-floor';
 let needsPlacement = false;
@@ -296,6 +327,7 @@ async function enterXR(mode) {
   document.body.classList.add('in-xr');
   if (mode === 'immersive-ar') document.body.classList.add('in-ar');
   applyMode();
+  refreshMenu();
 }
 
 // Put the world where the viewer is, once their first pose is known.
@@ -315,6 +347,9 @@ function placeWorld(frame) {
 renderer.xr.addEventListener('sessionend', () => {
   xrMode = null;
   xrInput.reset();
+  menu.close();
+  gusts.length = 0;
+  ripples.clear();
   world.position.set(0, 0, 0);
   applyMode();
   camera.position.copy(savedCamera.position);
@@ -337,18 +372,26 @@ xrOverlay.addEventListener('beforexrselect', (e) => {
 });
 
 // --- per-frame input for the active scene --------------------------------------
-const input = { bursts: [], beams: [], calls: [], perches: [], head: camera.position, mode: 'screen', time: 0 };
+const input = { bursts: [], beams: [], calls: [], gusts: [], hands: [], perches: [], head: camera.position, mode: 'screen', time: 0 };
+const noHands = [];
 const nonXRPerches = [wandPerch];
 const xrPerches = [...xrInput.perches, wandPerch];
 
 function gatherInput(dt, time) {
-  input.bursts.length = input.beams.length = input.calls.length = 0;
+  input.bursts.length = input.beams.length = input.calls.length = input.gusts.length = 0;
   for (let i = bursts.length - 1; i >= 0; i--) {
     const b = bursts[i];
     b.age += dt;
     if (b.age >= b.life) bursts.splice(i, 1);
     else input.bursts.push({ origin: b.origin, dir: b.dir, strength: 1 - b.age / b.life });
   }
+  for (let i = gusts.length - 1; i >= 0; i--) {
+    const g = gusts[i];
+    g.age += dt;
+    if (g.age >= g.life) gusts.splice(i, 1);
+    else input.gusts.push({ origin: g.origin, dir: g.dir, speed: g.speed, strength: 1 - g.age / g.life });
+  }
+  input.hands = xrMode ? xrInput.hands : noHands;
   if (xrMode) {
     for (const s of xrInput.selecting) input.beams.push(xrInput.rayOf(s));
     for (const s of xrInput.squeezing) input.calls.push(xrInput.rayOf(s));
@@ -374,6 +417,8 @@ renderer.setAnimationLoop((time, frame) => {
   if (xrMode) {
     if (needsPlacement && frame) placeWorld(frame);
     xrInput.update(dt);
+    menu.update(dt, { pointers: xrInput.pointers, wrist: xrInput.wrist, head: headPose });
+    ripples.update(dt);
   } else if (view === 'orbit') {
     controls.update();
     // Keep the orbit camera above the ground.
@@ -401,19 +446,22 @@ const ui = (() => {
   const $ = (id) => document.getElementById(id);
   const btnVR = $('btn-vr'), btnAR = $('btn-ar'), btnView = $('btn-view');
   const title = $('scene-title'), hint = $('hint'), xrHelp = $('xr-help'), toast = $('toast');
-  const tabs = $('scene-tabs'), settingsEl = $('settings');
+  const tabs = $('scene-tabs'), arTabs = $('xr-scenes'), settingsEl = $('settings');
   let toastTimer = 0;
   let controlsFor = null; // scene the settings controls were built for
   const inputs = {};
 
-  for (const id of SCENE_IDS) {
-    const tab = document.createElement('button');
-    tab.type = 'button';
-    tab.setAttribute('role', 'tab');
-    tab.dataset.scene = id;
-    tab.textContent = SCENES[id].tab;
-    tab.addEventListener('click', () => activate(id));
-    tabs.append(tab);
+  // Scene tabs on the page card, and again on the phone-AR overlay.
+  for (const bar of [tabs, arTabs]) {
+    for (const id of SCENE_IDS) {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.setAttribute('role', 'tab');
+      tab.dataset.scene = id;
+      tab.textContent = SCENES[id].tab;
+      tab.addEventListener('click', () => activate(id));
+      bar.append(tab);
+    }
   }
 
   function buildSettings() {
@@ -457,7 +505,7 @@ const ui = (() => {
   return {
     update() {
       if (controlsFor !== current) buildSettings();
-      for (const tab of tabs.children) tab.setAttribute('aria-selected', String(tab.dataset.scene === current.id));
+      for (const tab of [...tabs.children, ...arTabs.children]) tab.setAttribute('aria-selected', String(tab.dataset.scene === current.id));
       title.textContent = current.title;
       hint.textContent = isTouch ? current.hints.touch : current.hints.mouse;
       xrHelp.textContent = current.hints.xr;
@@ -467,6 +515,7 @@ const ui = (() => {
         else el.checked = current.values[d.key];
       }
       btnView.textContent = view === 'orbit' ? current.inside.label : 'Overview';
+      refreshMenu();
     },
     flash(message) {
       toast.textContent = message;
@@ -503,4 +552,4 @@ const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1500));
 for (const id of SCENE_IDS) idle(() => preload(id), { timeout: 4000 });
 
 // Handy for poking at the app from the console (and for the tests).
-window.wings = { renderer, scene, camera, world, xrInput, wandPerch, get current() { return current; }, activate, loaded };
+window.wings = { renderer, scene, camera, world, xrInput, menu, wandPerch, get current() { return current; }, activate, loaded };

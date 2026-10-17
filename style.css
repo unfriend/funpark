@@ -157,6 +157,15 @@ body.in-ar #xr-overlay {
   inset: 0;
   pointer-events: none;
 }
+#xr-scenes {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  pointer-events: auto;
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
 #btn-exit-ar {
   position: absolute;
   top: max(16px, env(safe-area-inset-top));
