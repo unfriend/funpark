@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Perch } from './perch.js';
 
 export async function detectXR() {
@@ -43,6 +44,22 @@ export async function startSession(renderer, mode, overlayRoot) {
 
 const RAY_IDLE = 0x9fb4ff;
 const RAY_ACTIVE = 0xffe28a;
+// XRControllerModelFactory's load callback dereferences the controller's
+// motion controller, which is null if the controller disconnected while its
+// model was downloading (e.g. putting controllers down for hand tracking).
+// The model just loads again on the next connect, so drop that error.
+class TolerantGLTFLoader extends GLTFLoader {
+  load(url, onLoad, onProgress, onError) {
+    return super.load(url, (asset) => {
+      try {
+        onLoad(asset);
+      } catch (err) {
+        if (!(err instanceof TypeError)) throw err;
+      }
+    }, onProgress, onError);
+  }
+}
+
 const TAP_MS = 300; // phone AR: shorter touches are taps
 const HOLD_MS = 350; // ...longer ones hold out a flower
 
@@ -67,7 +84,7 @@ export class XRInput {
     this.sources = [];
     this.perches = [];
 
-    const controllerModels = new XRControllerModelFactory();
+    const controllerModels = new XRControllerModelFactory(new TolerantGLTFLoader());
     const handModels = new XRHandModelFactory();
     const rayGeometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -1)]);
 
